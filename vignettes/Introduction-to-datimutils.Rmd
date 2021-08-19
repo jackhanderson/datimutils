@@ -7,6 +7,18 @@ vignette: >
   %\VignetteEncoding{UTF-8}
 ---
 
+The `datimutils` package was developed to simplify interaction with the DATIM/DHIS2 api from R. The package was designed to work well with `tidyverse` package functions and currently supports requesting metadata and metadata properties as well as aggregated data from the analytics resource of the API. This enables one to pull any data that one would be able to get in a DHIS2 pivot table.
+
+To make use of `datimutils` package you should already have a basic understanding of DATIM/DHIS2. For instance you should understand that:
+
+* the data in DHIS2 instances are associated with organisation units, data elements, time periods, and categories and category options such as age and sex;
+
+* the metadata in DHIS2 have additional properties depending on the metadata type, for instance latitude and longitude for organisation units or description for data elements;
+
+* organisation units are structured in a hierarchy and data can be aggregated within that hierarchy.
+
+Below we will show how datimutils can be used to log into a DHIS2 instance, retrieve metadata, and retireve aggregated data for further analysis in R.
+
 ```{r, include = FALSE}
 knitr::opts_chunk$set(
   collapse = TRUE,
@@ -17,20 +29,24 @@ knitr::opts_chunk$set(
 
 ```{r setup}
 library(datimutils)
+library(httptest)
 ```
 
+```{r, include = FALSE}
+httptest::start_vignette("play.dhis2.org")
+```
 ## Logging into DATIM
 
 Before querying the DATIM api, you must log into a DATIM instance. There are three basic ways to do so within datimutils. All three utilize the `loginToDATIM` function.
 
 By default the `loginToDATIM` function will create an object containing details about the session. This object is named *d2_default_session*, and it is created in the environment from which the `loginToDATIM` function is called. In this vignette we are assuming you are logging in from the global environment. All datimutils functions will search for the d2_default_session by default, allowing you to make multiple DATIM api requests through datimutils without individually specifying unique login objects.
 
-> Note: By default, this session will expire after 60 minutes. When it does, you will need to re-authenticate 
+> Note: By default, this session will expire after 60 minutes. When it does, you will need to re-authenticate
 
 ### Method 1 - The Most Basic
-  
+
 The most basic method is to pass your username and password directly into the `loginToDATIM` function.
-  
+
 ```{r eval = F}
 loginToDATIM(
   base_url = 'play.dhis2.org/2.36/',
@@ -46,7 +62,7 @@ The other two methods require the use of a configuration file. Make sure that yo
 
 In this case, our config file is a JSON file called, *play.json*.
 
-There are two ways to login with this config file. 
+There are two ways to login with this config file.
 
 In the first, you input your baseurl, username, and password.
 
@@ -91,12 +107,13 @@ data <- tibble::tribble(~dataElement, ~orgUnit, ~value,
                 "cYeuwXTCPkU", "kJq2mPyFEHo", 2,
                 "fbfJHSPpUQD", "Vth0fbpFcsO", 3
                 )
+print(data)
 ```
 
 
 ### Getting metadata based on a vector of identifiers (e.g. uid or name)
 
-A DHIS2 configuration includes many different types of metadata, such as data elements and indicators. The Web api lets you look up these pieces of metadata and obtain their related properties . For instance, a property of an organisation unit is its path. Datimutils provides a number of high level metadata helpers for obtaining details on the different types of metadata. This is the list of high level metadata helpers in datimutils. 
+A DHIS2 configuration includes many different types of metadata, such as data elements and indicators. The Web api lets you look up these pieces of metadata and obtain their related properties . For instance, a property of an organisation unit is its path. Datimutils provides a number of high level metadata helpers for obtaining details on the different types of metadata. This is the list of high level metadata helpers in datimutils.
 
 ```
 getCategories(values, by, fields, d2_session, retry)
@@ -195,9 +212,9 @@ data <- getMetadata(
 head(data)
 ```
 
-In the above function, the second argument is called a filter. In this case, it filters the 'organisationUnits' endpoint to only respond with units at the district level. 
+In the above function, the second argument is called a filter. In this case, it filters the 'organisationUnits' endpoint to only respond with units at the district level.
 
-To improve the syntax of datimutils code, datimutils has included it own api comparison operators. A full list of datimutils' custom api comparison operators can be found at the end of the section. The above and below command are equivalent. 
+To improve the syntax of datimutils code, datimutils has included it own api comparison operators. A full list of datimutils' custom api comparison operators can be found at the end of the section. The above and below command are equivalent.
 
 ```{r}
 data <- getMetadata(
@@ -226,7 +243,7 @@ Though the return of these commands may seem convoluted, as some columns actuall
 ```
 {
    "headers":[
-      
+
    ],
    "metaData":{
       "items":{
@@ -283,7 +300,7 @@ Though the return of these commands may seem convoluted, as some columns actuall
 
 
 
-<!-- seems like a new section from here on 
+<!-- seems like a new section from here on
 
 These helpers will create repeated values and sorting based on input
 ```{r}
@@ -409,4 +426,5 @@ To use `getAnalytics` you can pass in the uids into their respective arguments a
 ```{r}
 a %.d% c("123","456")
 a %.f% c("123","456")
+httptest::end_vignette()
 ```
